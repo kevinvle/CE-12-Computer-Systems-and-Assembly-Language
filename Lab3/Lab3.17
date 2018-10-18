@@ -1,0 +1,77 @@
+# Kevin Le, kevle@ucsc.edu, Lab 3, Decimal Converter, Due: Nov 1st, CMPE 02E, TA: Nick Junius
+.text
+main:
+	move	 $s0,$a1
+	lw	 $s0,($s0)
+	la	 $a0, hello_msg 	# load the addr of hello_msg into $a0.
+	li	 $v0, 4 		
+	syscall 			
+        #------------------------------------------------------------------------
+	la    	 $a0, input_msg 	# print asking for input
+	li       $v0, 4 		
+	syscall	
+	lw	 $a0, ($a1)		# Print out label
+	li	 $v0, 4
+	syscall	
+	#------------------------------------------------------------------------
+	li	 $t1, 10		# Initialize t1 with 10 to multiply to input if its greater than 9
+	lb	 $s6, ($s0)		# we read in the first char which is "-"
+	bne 	 $s6, 45, init_loop 	# If s6 is not equal to 45, then go to init_loop
+	addi 	 $s3, $s3, 1		# Add 1 to s3 - will use this to act as a conditional to either print 1 or 0
+	addi 	 $s0, $s0, 1		# Increment the address to read next char.
+					#we want to process the char after that before the loop
+	#--------- Start Loop - iterating through the string ---------------------------------------------
+init_loop:
+	li	 $s6, 0		   	# Initialize s6 is sum and sum = 0
+Get_next_digit:	
+	lb	 $s4, ($s0)		# Store user input into s4	 
+Is_null: 				
+	beqz	 $s4, Exit_loop 	# When s4 hits null in input, exit the loop
+	nop	 			# Terminate loop
+Convert_string_to_int: 
+	subi 	 $s4, $s4, 48		# Convert byte to int 
+Update_sum:
+	mul	 $s6, $s6, $t1		# Sum = sum * 10
+	add	 $s6, $s6, $s4 		# Sum = sum * 10 + digit
+Increment_address:
+	addi 	 $s0, $s0, 1		# Increment Get_next_digit
+Jump_back:
+	j	 Get_next_digit		# Go back to the top of the loop in order to convert 2nd address string content into number
+	Exit_loop: 
+# -------------- End loop, Starting Check for Inversion + Binary Conversion ----------------------
+	bne 	$s3, 1, Finish_inversion # If s3 does not have a 1 in it skip to finish_inversion
+	not 	$s6, $s6		 # Invert 		
+	add	$s6, $s6, 1		 # Add one to number after inverting to complete 2SC
+Finish_inversion:
+	la    	 $a0, output_msg	# print asking for input
+	li       $v0, 4 		# print_string syscall
+	syscall	
+Initialize_32:
+	li	 $s1, 1			# Initialize register with value 1
+	sll 	 $s2, $s1, 31	 	# Shift initialized register by 32 bits to create 1000...0000 32 bits
+Jump_b:
+	and	 $s7, $s6, $s2		# "And" input and 32 bit register
+	beqz 	 $s7, print0		# If the number in position is 0, print 0
+	li	 $a0, 49		# Load 1 into a0
+	li	 $v0, 11		# Print 1
+	syscall
+	j	 noprint0		# Jump to noprint0 which means we aren't printing 0
+print0: li	 $a0, 48
+	li	 $v0, 11
+	syscall	
+noprint0:
+	srl 	 $s2, $s2, 1		# Shift 32 bit register index one position to the right
+	beqz 	 $s2, Exit	 	# If input number reaches the end (null), quit the loop
+	j 	 Jump_b			# Jump back to loop
+Exit:
+	li	 $v0, 10 # 10 is the exit syscall.
+	syscall 		
+# Data for the program:
+.data
+hello_msg: .asciiz "Welcome to Kevin's conversion program!\n"
+input_msg: .asciiz " Input Number:"
+output_msg: .asciiz "\n Output Number:"
+str2:  .asciiz "You wrote:"
+null: .word 0
+stored: .word
+# end hello.asm
